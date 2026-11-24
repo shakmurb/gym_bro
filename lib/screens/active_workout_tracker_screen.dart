@@ -243,6 +243,18 @@ class _ActiveWorkoutTrackerScreenState extends State<ActiveWorkoutTrackerScreen>
     setState(() {});
   }
 
+  Future<void> _editWeight(int exerciseIndex, int setIndex) async {
+    final exerciseSet = widget.workout.sets[exerciseIndex].sets[setIndex];
+    final weight = await showDialog<double>(
+      context: context,
+      builder: (context) =>
+          _WeightEditorDialog(initialWeight: exerciseSet.weight),
+    );
+    if (weight == null || !mounted) return;
+    exerciseSet.weight = weight;
+    setState(() {});
+  }
+
   Future<void> _adjustRest(Duration change) async {
     _timer.adjustRest(change);
     setState(() => _actionError = null);
@@ -394,6 +406,7 @@ class _ActiveWorkoutTrackerScreenState extends State<ActiveWorkoutTrackerScreen>
                                       : -1,
                                   canCompleteSet: _canCompleteSet,
                                   onAdjustSet: _adjustSet,
+                                  onEditWeight: _editWeight,
                                   onCompleteSet: _completeCurrentSet,
                                 ),
                               );
@@ -706,6 +719,7 @@ class _ExerciseCard extends StatelessWidget {
     required this.currentSetIndex,
     required this.canCompleteSet,
     required this.onAdjustSet,
+    required this.onEditWeight,
     required this.onCompleteSet,
   });
 
@@ -716,6 +730,7 @@ class _ExerciseCard extends StatelessWidget {
   final int currentSetIndex;
   final bool Function(int exerciseIndex, int setIndex) canCompleteSet;
   final void Function(int, int, double, int) onAdjustSet;
+  final Future<void> Function(int exerciseIndex, int setIndex) onEditWeight;
   final Future<void> Function(int exerciseIndex, int setIndex) onCompleteSet;
 
   @override
@@ -804,9 +819,9 @@ class _ExerciseCard extends StatelessWidget {
             children: [
               Expanded(flex: 1, child: _TableLabel('SET')),
               Expanded(flex: 2, child: _TableLabel('PREV')),
-              Expanded(flex: 4, child: _TableLabel('KG')),
+              SizedBox(width: 68, child: _TableLabel('KG')),
               Expanded(flex: 3, child: _TableLabel('REPS')),
-              SizedBox(width: 48, child: _TableLabel('LOG')),
+              SizedBox(width: 44, child: _TableLabel('LOG')),
             ],
           ),
           const SizedBox(height: 6),
@@ -819,6 +834,7 @@ class _ExerciseCard extends StatelessWidget {
               isCompleted: completedSets[setIndex],
               isCurrent: currentSetIndex == setIndex,
               onAdjustSet: onAdjustSet,
+              onEditWeight: onEditWeight,
               onComplete: canCompleteSet(exerciseIndex, setIndex)
                   ? () => onCompleteSet(exerciseIndex, setIndex)
                   : null,
@@ -868,6 +884,7 @@ class _SetRow extends StatelessWidget {
     required this.isCompleted,
     required this.isCurrent,
     required this.onAdjustSet,
+    required this.onEditWeight,
     required this.onComplete,
   });
 
@@ -878,6 +895,7 @@ class _SetRow extends StatelessWidget {
   final bool isCompleted;
   final bool isCurrent;
   final void Function(int, int, double, int) onAdjustSet;
+  final Future<void> Function(int exerciseIndex, int setIndex) onEditWeight;
   final VoidCallback? onComplete;
 
   @override
@@ -925,14 +943,12 @@ class _SetRow extends StatelessWidget {
               ),
             ),
           ),
-          Expanded(
-            flex: 4,
-            child: _SetValueStepper(
+          SizedBox(
+            width: 68,
+            child: _EditableWeight(
               value: _formatWeight(exerciseSet.weight),
-              decreaseKey: ValueKey('decreaseWeight$exerciseIndex-$setIndex'),
-              increaseKey: ValueKey('increaseWeight$exerciseIndex-$setIndex'),
-              onDecrease: () => onAdjustSet(exerciseIndex, setIndex, -2.5, 0),
-              onIncrease: () => onAdjustSet(exerciseIndex, setIndex, 2.5, 0),
+              key: ValueKey('weightValue$exerciseIndex-$setIndex'),
+              onTap: () => onEditWeight(exerciseIndex, setIndex),
             ),
           ),
           Expanded(
@@ -981,6 +997,106 @@ class _SetRow extends StatelessWidget {
 
 String _formatWeight(double weight) =>
     weight == weight.roundToDouble() ? weight.toInt().toString() : '$weight';
+
+class _EditableWeight extends StatelessWidget {
+  const _EditableWeight({super.key, required this.value, required this.onTap});
+
+  final String value;
+  final Future<void> Function() onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: _TrackerColors.surface,
+    borderRadius: BorderRadius.circular(4),
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(4),
+      child: SizedBox(
+        height: 38,
+        child: Center(
+          child: Text(
+            value,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            style: const TextStyle(
+              color: _TrackerColors.primary,
+              fontFamily: 'monospace',
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+class _WeightEditorDialog extends StatefulWidget {
+  const _WeightEditorDialog({required this.initialWeight});
+
+  final double initialWeight;
+
+  @override
+  State<_WeightEditorDialog> createState() => _WeightEditorDialogState();
+}
+
+class _WeightEditorDialogState extends State<_WeightEditorDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _controller = TextEditingController(
+    text: _formatWeight(widget.initialWeight),
+  );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  double? _parseWeight(String? input) {
+    final normalized = input?.trim().replaceAll(',', '.');
+    final weight = normalized == null ? null : double.tryParse(normalized);
+    if (weight == null || !weight.isFinite || weight < 0) return null;
+    return weight;
+  }
+
+  void _save() {
+    if (!_formKey.currentState!.validate()) return;
+    Navigator.of(context).pop(_parseWeight(_controller.text));
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Edit weight'),
+    content: Form(
+      key: _formKey,
+      child: TextFormField(
+        key: const ValueKey('weightInput'),
+        controller: _controller,
+        autofocus: true,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        decoration: const InputDecoration(
+          labelText: 'Weight (kg)',
+          suffixText: 'kg',
+        ),
+        validator: (value) => _parseWeight(value) == null
+            ? 'Enter a valid non-negative weight.'
+            : null,
+        onFieldSubmitted: (_) => _save(),
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Text('CANCEL'),
+      ),
+      FilledButton(
+        key: const ValueKey('saveWeight'),
+        onPressed: _save,
+        child: const Text('SAVE'),
+      ),
+    ],
+  );
+}
 
 class _SetValueStepper extends StatelessWidget {
   const _SetValueStepper({

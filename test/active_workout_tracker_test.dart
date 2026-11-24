@@ -73,12 +73,20 @@ void main() {
     expect(find.byKey(const ValueKey('startWorkout')), findsOneWidget);
     expect(find.byKey(const ValueKey('pauseWorkout')), findsNothing);
 
-    await tester.ensureVisible(find.byKey(const ValueKey('increaseWeight0-0')));
-    await tester.tap(find.byKey(const ValueKey('increaseWeight0-0')));
-    await tester.pump();
+    await tester.ensureVisible(find.byKey(const ValueKey('weightValue0-0')));
+    expect(
+      tester.getSize(find.byKey(const ValueKey('weightValue0-0'))).width,
+      68,
+    );
+    await tester.tap(find.byKey(const ValueKey('weightValue0-0')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('weightInput')), findsOneWidget);
+    await tester.enterText(find.byKey(const ValueKey('weightInput')), '999.9');
+    await tester.tap(find.byKey(const ValueKey('saveWeight')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('increaseReps0-0')));
     await tester.pump();
-    expect(workout.sets.first.sets.first.weight, 62.5);
+    expect(workout.sets.first.sets.first.weight, 999.9);
     expect(workout.sets.first.sets.first.repetitions, 11);
 
     await tester.tap(find.byKey(const ValueKey('startWorkout')));
