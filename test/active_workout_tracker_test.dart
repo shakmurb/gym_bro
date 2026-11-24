@@ -43,7 +43,7 @@ void main() {
           mainMuscleGroup: 'CHEST',
           recommendedRestTime: 90,
           sets: [
-            ExerciseSet(weight: 60, repetitions: 10, isCompleted: false),
+            ExerciseSet(weight: 60, repetitions: 99, isCompleted: false),
             ExerciseSet(weight: 60, repetitions: 9, isCompleted: false),
           ],
         ),
@@ -75,8 +75,27 @@ void main() {
 
     await tester.ensureVisible(find.byKey(const ValueKey('weightValue0-0')));
     expect(
+      tester.getSize(find.byKey(const ValueKey('repsValue0-0'))).width,
+      84,
+    );
+    expect(find.text('99'), findsOneWidget);
+    final repsValueRect = tester.getRect(find.text('99'));
+    final decreaseRepsRect = tester.getRect(
+      find.byKey(const ValueKey('decreaseReps0-0')),
+    );
+    final increaseRepsRect = tester.getRect(
+      find.byKey(const ValueKey('increaseReps0-0')),
+    );
+    expect(repsValueRect.left, greaterThanOrEqualTo(decreaseRepsRect.right));
+    expect(repsValueRect.right, lessThanOrEqualTo(increaseRepsRect.left));
+    expect(
       tester.getSize(find.byKey(const ValueKey('weightValue0-0'))).width,
       68,
+    );
+    expect(
+      tester.getRect(find.byKey(const ValueKey('repsValue0-0'))).left -
+          tester.getRect(find.byKey(const ValueKey('weightValue0-0'))).right,
+      8,
     );
     await tester.tap(find.byKey(const ValueKey('weightValue0-0')));
     await tester.pumpAndSettle();
@@ -87,7 +106,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('increaseReps0-0')));
     await tester.pump();
     expect(workout.sets.first.sets.first.weight, 999.9);
-    expect(workout.sets.first.sets.first.repetitions, 11);
+    expect(workout.sets.first.sets.first.repetitions, 100);
 
     await tester.tap(find.byKey(const ValueKey('startWorkout')));
     await tester.pump();

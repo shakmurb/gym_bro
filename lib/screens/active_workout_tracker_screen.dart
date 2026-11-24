@@ -820,7 +820,8 @@ class _ExerciseCard extends StatelessWidget {
               Expanded(flex: 1, child: _TableLabel('SET')),
               Expanded(flex: 2, child: _TableLabel('PREV')),
               SizedBox(width: 68, child: _TableLabel('KG')),
-              Expanded(flex: 3, child: _TableLabel('REPS')),
+              SizedBox(width: 8),
+              SizedBox(width: 84, child: _TableLabel('REPS')),
               SizedBox(width: 44, child: _TableLabel('LOG')),
             ],
           ),
@@ -951,9 +952,11 @@ class _SetRow extends StatelessWidget {
               onTap: () => onEditWeight(exerciseIndex, setIndex),
             ),
           ),
-          Expanded(
-            flex: 3,
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 84,
             child: _SetValueStepper(
+              key: ValueKey('repsValue$exerciseIndex-$setIndex'),
               value: '${exerciseSet.repetitions}',
               decreaseKey: ValueKey('decreaseReps$exerciseIndex-$setIndex'),
               increaseKey: ValueKey('increaseReps$exerciseIndex-$setIndex'),
@@ -1100,6 +1103,7 @@ class _WeightEditorDialogState extends State<_WeightEditorDialog> {
 
 class _SetValueStepper extends StatelessWidget {
   const _SetValueStepper({
+    super.key,
     required this.value,
     required this.decreaseKey,
     required this.increaseKey,
@@ -1116,19 +1120,11 @@ class _SetValueStepper extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
     children: [
-      IconButton(
+      _StepperButton(
         key: decreaseKey,
-        tooltip: 'Decrease',
-        onPressed: onDecrease,
-        visualDensity: VisualDensity.compact,
-        constraints: const BoxConstraints.tightFor(width: 24, height: 34),
-        padding: EdgeInsets.zero,
-        style: IconButton.styleFrom(
-          backgroundColor: _TrackerColors.surface,
-          foregroundColor: _TrackerColors.onSurface,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-        ),
-        icon: const Icon(Icons.remove, size: 14),
+        label: 'Decrease',
+        icon: Icons.remove,
+        onTap: onDecrease,
       ),
       Expanded(
         child: Text(
@@ -1143,21 +1139,47 @@ class _SetValueStepper extends StatelessWidget {
           ),
         ),
       ),
-      IconButton(
+      _StepperButton(
         key: increaseKey,
-        tooltip: 'Increase',
-        onPressed: onIncrease,
-        visualDensity: VisualDensity.compact,
-        constraints: const BoxConstraints.tightFor(width: 24, height: 34),
-        padding: EdgeInsets.zero,
-        style: IconButton.styleFrom(
-          backgroundColor: _TrackerColors.surface,
-          foregroundColor: _TrackerColors.onSurface,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-        ),
-        icon: const Icon(Icons.add, size: 14),
+        label: 'Increase',
+        icon: Icons.add,
+        onTap: onIncrease,
       ),
     ],
+  );
+}
+
+class _StepperButton extends StatelessWidget {
+  const _StepperButton({
+    super.key,
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: label,
+    child: Material(
+      color: _TrackerColors.surface,
+      borderRadius: BorderRadius.circular(4),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(4),
+        child: SizedBox(
+          width: 28,
+          height: 34,
+          child: Center(
+            child: Icon(icon, size: 14, color: _TrackerColors.onSurface),
+          ),
+        ),
+      ),
+    ),
   );
 }
 
