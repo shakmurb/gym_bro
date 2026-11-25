@@ -164,6 +164,7 @@ void main() {
     expect(finishedSession?.sets.single.sets.single.isCompleted, isTrue);
     expect(finishedSession?.sets.single.sets.single.repetitions, 100);
     expect(finishedSession?.date, now);
+    expect(finishedSession?.totalTime, 24);
 
     await tester.tap(find.byKey(const ValueKey('resetWorkout')));
     await tester.pump();

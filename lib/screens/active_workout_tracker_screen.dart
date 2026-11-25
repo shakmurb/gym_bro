@@ -309,10 +309,6 @@ class _ActiveWorkoutTrackerScreenState extends State<ActiveWorkoutTrackerScreen>
 
   Future<void> _finishWorkout() async {
     final wasResting = _timer.phase == WorkoutPhase.rest;
-    final startedAt = _sessionStartedAt;
-    if (startedAt != null) {
-      _elapsedBeforeCurrentRun += _clock().difference(startedAt);
-    }
     widget.workout.date = _clock();
     widget.workout.totalTime = _workoutElapsed.inSeconds;
     _timer.pause();
