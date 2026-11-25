@@ -5,6 +5,7 @@ import 'package:gym_bro/models/exercise.dart';
 import 'package:gym_bro/models/exercise_set.dart';
 import 'package:gym_bro/models/workout_session.dart';
 import 'package:gym_bro/screens/history_analytics_screen.dart';
+import 'package:gym_bro/data/repositories/workout_repository.dart';
 
 class _FakeAlerts extends RestAlertService {
   @override
@@ -12,6 +13,26 @@ class _FakeAlerts extends RestAlertService {
 
   @override
   Future<void> cancelRestEnd() async {}
+}
+
+class _MemoryWorkoutStore implements WorkoutSessionStore {
+  final List<WorkoutSession> sessions = [];
+  int _nextId = 1;
+
+  @override
+  Future<int> saveSession(WorkoutSession session) async {
+    final id = _nextId++;
+    sessions.insert(0, session.copyWith(id: id));
+    return id;
+  }
+
+  @override
+  Future<List<WorkoutSession>> getAllSessions() async => [...sessions];
+
+  @override
+  Future<void> deleteSession(int id) async {
+    sessions.removeWhere((session) => session.id == id);
+  }
 }
 
 void main() {
@@ -95,7 +116,12 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       await tester.pumpWidget(
-        MaterialApp(home: GymBroAppShell(alerts: _FakeAlerts())),
+        MaterialApp(
+          home: GymBroAppShell(
+            alerts: _FakeAlerts(),
+            repository: _MemoryWorkoutStore(),
+          ),
+        ),
       );
 
       expect(find.byKey(const ValueKey('startWorkout')), findsOneWidget);
@@ -134,6 +160,29 @@ void main() {
     },
   );
 
+  testWidgets('loads saved workout history when the app starts', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final repository = _MemoryWorkoutStore()
+      ..sessions.add(WorkoutSession(name: 'Saved workout', sets: [], id: 17));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GymBroAppShell(alerts: _FakeAlerts(), repository: repository),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('navHistory')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Saved workout'), findsOneWidget);
+    expect(find.byKey(const ValueKey('workoutSessionsList')), findsOneWidget);
+  });
+
   testWidgets('finished workout is retained and shown in history', (
     tester,
   ) async {
@@ -142,8 +191,11 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
+    final repository = _MemoryWorkoutStore();
     await tester.pumpWidget(
-      MaterialApp(home: GymBroAppShell(alerts: _FakeAlerts())),
+      MaterialApp(
+        home: GymBroAppShell(alerts: _FakeAlerts(), repository: repository),
+      ),
     );
     await tester.ensureVisible(find.byKey(const ValueKey('startWorkout')));
     await tester.tap(find.byKey(const ValueKey('startWorkout')));
@@ -158,6 +210,7 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('finishWorkout')));
     await tester.pump();
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('navHistory')));
     await tester.pumpAndSettle();
@@ -165,5 +218,13 @@ void main() {
     expect(find.text('Push Day'), findsOneWidget);
     expect(find.byKey(const ValueKey('workoutSessionsList')), findsOneWidget);
     expect(find.text('DATE NOT RECORDED'), findsNothing);
+    expect(repository.sessions, hasLength(1));
+    expect(repository.sessions.single.id, 1);
+    expect(
+      repository.sessions.single.sets.every(
+        (e) => e.sets.every((s) => s.isCompleted),
+      ),
+      isTrue,
+    );
   });
 }

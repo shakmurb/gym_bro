@@ -14,6 +14,7 @@ import 'screens/active_workout_tracker_screen.dart';
 import 'screens/exercise_library_screen.dart';
 import 'screens/history_analytics_screen.dart';
 import 'screens/workout_hub_screen.dart';
+import 'data/repositories/workout_repository.dart';
 
 const _restNotificationId = 1;
 const _restChannelId = 'workout_rest';
@@ -118,10 +119,16 @@ class MyApp extends StatelessWidget {
 }
 
 class GymBroAppShell extends StatefulWidget {
-  const GymBroAppShell({super.key, required this.alerts, this.alertWarning});
+  const GymBroAppShell({
+    super.key,
+    required this.alerts,
+    this.alertWarning,
+    this.repository,
+  });
 
   final RestAlertService alerts;
   final String? alertWarning;
+  final WorkoutSessionStore? repository;
 
   @override
   State<GymBroAppShell> createState() => _GymBroAppShellState();
@@ -129,10 +136,43 @@ class GymBroAppShell extends StatefulWidget {
 
 class _GymBroAppShellState extends State<GymBroAppShell> {
   late final WorkoutTimer _timer = WorkoutTimer();
+  late final WorkoutSessionStore _repository =
+      widget.repository ?? WorkoutRepository();
   int _selectedDestination = 0;
   bool _showActiveWorkout = false;
   WorkoutSession? _activeWorkout;
-  final List<WorkoutSession> _finishedSessions = [];
+  List<WorkoutSession> _finishedSessions = [];
+  bool _isLoadingHistory = true;
+  String? _historyError;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFinishedSessions();
+  }
+
+  Future<void> _loadFinishedSessions() async {
+    try {
+      final sessions = await _repository.getAllSessions();
+      if (!mounted) return;
+      setState(() {
+        final unsavedSessions = _finishedSessions
+            .where((session) => session.id == null)
+            .toList();
+        _finishedSessions = [...sessions, ...unsavedSessions];
+        _historyError = null;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _historyError = 'Could not load workout history: $error';
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingHistory = false);
+      }
+    }
+  }
 
   void _startWorkout() {
     setState(() {
@@ -153,6 +193,28 @@ class _GymBroAppShellState extends State<GymBroAppShell> {
       _selectedDestination = 0;
       _showActiveWorkout = false;
     });
+    unawaited(_persistFinishedWorkout(finishedWorkout));
+  }
+
+  Future<void> _persistFinishedWorkout(WorkoutSession session) async {
+    try {
+      final id = await _repository.saveSession(session);
+      if (!mounted) return;
+      setState(() {
+        final index = _finishedSessions.indexWhere(
+          (savedSession) => identical(savedSession, session),
+        );
+        if (index != -1) {
+          _finishedSessions[index] = session.copyWith(id: id);
+        }
+        _historyError = null;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _historyError = 'Workout finished, but could not be saved: $error';
+      });
+    }
   }
 
   void _selectDestination(int index) {
@@ -169,7 +231,11 @@ class _GymBroAppShellState extends State<GymBroAppShell> {
         index: _showActiveWorkout ? 3 : _selectedDestination,
         children: [
           WorkoutHubScreen(onStartWorkout: _startWorkout),
-          HistoryAnalyticsScreen(sessions: _finishedSessions),
+          HistoryAnalyticsScreen(
+            sessions: _finishedSessions,
+            isLoading: _isLoadingHistory,
+            errorMessage: _historyError,
+          ),
           const ExerciseLibraryScreen(),
           _activeWorkout == null
               ? const SizedBox.shrink()

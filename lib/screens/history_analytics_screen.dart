@@ -5,9 +5,16 @@ import '../models/workout_session.dart';
 import '../widgets/gym_bro_components.dart';
 
 class HistoryAnalyticsScreen extends StatefulWidget {
-  const HistoryAnalyticsScreen({super.key, required this.sessions});
+  const HistoryAnalyticsScreen({
+    super.key,
+    required this.sessions,
+    this.isLoading = false,
+    this.errorMessage,
+  });
 
   final List<WorkoutSession> sessions;
+  final bool isLoading;
+  final String? errorMessage;
 
   @override
   State<HistoryAnalyticsScreen> createState() => _HistoryAnalyticsScreenState();
@@ -133,7 +140,22 @@ class _HistoryAnalyticsScreenState extends State<HistoryAnalyticsScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              if (widget.sessions.isEmpty)
+              if (widget.errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: Center(
+                    child: Text(
+                      widget.errorMessage!,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                )
+              else if (widget.isLoading)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (widget.sessions.isEmpty)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 20),
                   child: Center(child: Text('No completed workouts yet.')),
