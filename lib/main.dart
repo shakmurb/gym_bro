@@ -8,7 +8,7 @@ import 'package:timezone/timezone.dart' as timezone;
 
 import 'workout_timer.dart';
 import 'gym_bro_theme.dart';
-import 'models/workout.dart';
+import 'models/workout_session.dart';
 import 'sample_workout.dart';
 import 'screens/active_workout_tracker_screen.dart';
 import 'screens/exercise_library_screen.dart';
@@ -131,7 +131,7 @@ class _GymBroAppShellState extends State<GymBroAppShell> {
   late final WorkoutTimer _timer = WorkoutTimer();
   int _selectedDestination = 0;
   bool _showActiveWorkout = false;
-  Workout? _activeWorkout;
+  WorkoutSession? _activeWorkout;
 
   void _startWorkout() {
     setState(() {

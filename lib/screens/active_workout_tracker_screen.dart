@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 
 import '../models/exercise.dart';
-import '../models/workout.dart';
+import '../models/workout_session.dart';
 import '../workout_timer.dart';
 import '../widgets/active_workout_exercise_card.dart';
 
@@ -19,7 +19,7 @@ class ActiveWorkoutTrackerScreen extends StatefulWidget {
     this.clock,
   });
 
-  final Workout workout;
+  final WorkoutSession workout;
   final WorkoutTimer timer;
   final Future<void> Function(DateTime deadline) onScheduleRestEnd;
   final Future<void> Function() onCancelRestEnd;
@@ -444,7 +444,7 @@ class _WorkoutBanner extends StatelessWidget {
     required this.formatDuration,
   });
 
-  final Workout workout;
+  final WorkoutSession workout;
   final Exercise? exercise;
   final int exerciseNumber;
   final int setNumber;

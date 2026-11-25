@@ -5,7 +5,7 @@ History & Analytics screen. The bottom navigation switches between the Hub,
 Exercise Library, and History & Analytics; start an active workout from the
 Hub's Start Workout button.
 
-The Active Workout Tracker receives a `Workout` and shows its exercise cards
+The Active Workout Tracker receives a `WorkoutSession` and shows its exercise cards
 and sets. The Start button begins the total workout clock; completing a set
 starts a rest using that exercise's recommended rest time. Rest can be adjusted
 in 15-second increments or skipped, and the next set starts manually. Tap a

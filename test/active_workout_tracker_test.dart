@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gym_bro/models/exercise.dart';
 import 'package:gym_bro/models/exercise_set.dart';
-import 'package:gym_bro/models/workout.dart';
+import 'package:gym_bro/models/workout_session.dart';
 import 'package:gym_bro/sample_workout.dart';
 import 'package:gym_bro/screens/active_workout_tracker_screen.dart';
 import 'package:gym_bro/workout_timer.dart';
@@ -34,7 +34,7 @@ void main() {
     var now = DateTime(2026, 1, 1);
     final timer = WorkoutTimer(clock: () => now);
     final alerts = _FakeAlerts();
-    final workout = Workout(
+    final workout = WorkoutSession(
       name: 'Test Push Day',
       sets: [
         Exercise(
@@ -174,7 +174,7 @@ void main() {
     var now = DateTime(2026, 1, 1);
     final timer = WorkoutTimer(clock: () => now);
     final alerts = _FakeAlerts();
-    final workout = Workout(
+    final workout = WorkoutSession(
       name: 'Test Push Day',
       sets: [
         Exercise(
