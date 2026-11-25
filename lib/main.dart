@@ -217,6 +217,21 @@ class _GymBroAppShellState extends State<GymBroAppShell> {
     }
   }
 
+  Future<void> _deleteWorkoutSession(WorkoutSession session) async {
+    final id = session.id;
+    if (id != null) {
+      await _repository.deleteSession(id);
+    }
+    if (!mounted) return;
+    setState(() {
+      _finishedSessions.removeWhere(
+        (savedSession) => id == null
+            ? identical(savedSession, session)
+            : savedSession.id == id,
+      );
+    });
+  }
+
   void _selectDestination(int index) {
     setState(() {
       _selectedDestination = index;
@@ -235,6 +250,7 @@ class _GymBroAppShellState extends State<GymBroAppShell> {
             sessions: _finishedSessions,
             isLoading: _isLoadingHistory,
             errorMessage: _historyError,
+            onDeleteSession: _deleteWorkoutSession,
           ),
           const ExerciseLibraryScreen(),
           _activeWorkout == null

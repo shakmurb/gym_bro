@@ -226,5 +226,21 @@ void main() {
       ),
       isTrue,
     );
+
+    await tester.tap(find.byKey(const ValueKey('deleteSession-1')));
+    await tester.pumpAndSettle();
+    expect(find.text('Delete workout?'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(find.text('Push Day'), findsOneWidget);
+    expect(repository.sessions, hasLength(1));
+
+    await tester.tap(find.byKey(const ValueKey('deleteSession-1')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('confirmDeleteSession')));
+    await tester.pumpAndSettle();
+    expect(find.text('Push Day'), findsNothing);
+    expect(find.text('No completed workouts yet.'), findsOneWidget);
+    expect(repository.sessions, isEmpty);
   });
 }

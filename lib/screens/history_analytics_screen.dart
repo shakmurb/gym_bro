@@ -10,11 +10,13 @@ class HistoryAnalyticsScreen extends StatefulWidget {
     required this.sessions,
     this.isLoading = false,
     this.errorMessage,
+    this.onDeleteSession,
   });
 
   final List<WorkoutSession> sessions;
   final bool isLoading;
   final String? errorMessage;
+  final Future<void> Function(WorkoutSession session)? onDeleteSession;
 
   @override
   State<HistoryAnalyticsScreen> createState() => _HistoryAnalyticsScreenState();
@@ -168,8 +170,10 @@ class _HistoryAnalyticsScreenState extends State<HistoryAnalyticsScreen> {
                   itemCount: widget.sessions.length,
                   separatorBuilder: (context, index) =>
                       const SizedBox(height: 10),
-                  itemBuilder: (context, index) =>
-                      _SessionCard(session: widget.sessions[index]),
+                  itemBuilder: (context, index) => _SessionCard(
+                    session: widget.sessions[index],
+                    onDelete: widget.onDeleteSession,
+                  ),
                 ),
             ],
             if (_showAnalytics) ...[
@@ -396,10 +400,55 @@ class _SummaryMetric extends StatelessWidget {
   }
 }
 
-class _SessionCard extends StatelessWidget {
-  const _SessionCard({required this.session});
+class _SessionCard extends StatefulWidget {
+  const _SessionCard({required this.session, this.onDelete});
 
   final WorkoutSession session;
+  final Future<void> Function(WorkoutSession session)? onDelete;
+
+  @override
+  State<_SessionCard> createState() => _SessionCardState();
+}
+
+class _SessionCardState extends State<_SessionCard> {
+  bool _isDeleting = false;
+
+  Future<void> _confirmDelete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete workout?'),
+        content: Text(
+          'Are you sure you want to delete "${widget.session.name}"? '
+          'This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            key: const ValueKey('confirmDeleteSession'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || widget.onDelete == null) return;
+
+    setState(() => _isDeleting = true);
+    try {
+      await widget.onDelete!(widget.session);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not delete workout: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => _isDeleting = false);
+    }
+  }
 
   String _formatDate(DateTime? date) {
     if (date == null) return 'DATE NOT RECORDED';
@@ -430,6 +479,7 @@ class _SessionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final session = widget.session;
     final totalSets = session.sets.fold<int>(
       0,
       (count, exercise) => count + exercise.sets.length,
@@ -463,14 +513,28 @@ class _SessionCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      _formatDate(session.date),
-                      style: const TextStyle(
-                        color: GymBroColors.mutedGreen,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.6,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _formatDate(session.date),
+                            style: const TextStyle(
+                              color: GymBroColors.mutedGreen,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.6,
+                            ),
+                          ),
+                        ),
+                        if (widget.onDelete != null)
+                          IconButton(
+                            key: ValueKey('deleteSession-${session.id}'),
+                            tooltip: 'Delete workout',
+                            visualDensity: VisualDensity.compact,
+                            onPressed: _isDeleting ? null : _confirmDelete,
+                            icon: const Icon(Icons.delete_outline),
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 7),
                     Text(
