@@ -157,120 +157,123 @@ class _HistoryAnalyticsScreenState extends State<HistoryAnalyticsScreen> {
                 duration: 'RPE 8.5 AVG',
               ),
             ],
-            const SizedBox(height: 24),
-            GymBroSectionTitle(
-              title: 'Strength Analytics',
-              trailing: const Text(
-                'ESTIMATED 1RM',
-                style: TextStyle(
-                  color: GymBroColors.green,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1,
+            if (_showAnalytics) ...[
+              const SizedBox(height: 24),
+              GymBroSectionTitle(
+                title: 'Strength Analytics',
+                trailing: const Text(
+                  'ESTIMATED 1RM',
+                  style: TextStyle(
+                    color: GymBroColors.green,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            GymBroCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(height: 12),
+              GymBroCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'EXERCISE TRAJECTORY',
+                                style: TextStyle(
+                                  color: GymBroColors.mutedGreen,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                              SizedBox(height: 5),
+                              Text(
+                                'Barbell Bench Press',
+                                style: TextStyle(fontWeight: FontWeight.w700),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Text(
-                              'EXERCISE TRAJECTORY',
-                              style: TextStyle(
-                                color: GymBroColors.mutedGreen,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 1,
-                              ),
+                              '114.3',
+                              style: Theme.of(context).textTheme.headlineMedium
+                                  ?.copyWith(
+                                    color: GymBroColors.green,
+                                    fontWeight: FontWeight.w900,
+                                  ),
                             ),
-                            SizedBox(height: 5),
-                            Text(
-                              'Barbell Bench Press',
-                              style: TextStyle(fontWeight: FontWeight.w700),
+                            const Text(
+                              '+16.6% OVER 8 WKS',
+                              style: TextStyle(
+                                color: GymBroColors.green,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                           ],
                         ),
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            _showAnalytics ? '114.3' : '105.0',
-                            style: Theme.of(context).textTheme.headlineMedium
-                                ?.copyWith(
-                                  color: GymBroColors.green,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                          ),
-                          const Text(
-                            '+16.6% OVER 8 WKS',
-                            style: TextStyle(
-                              color: GymBroColors.green,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w800,
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 4,
+                      children: ['1M', '3M', '6M', '1Y', 'ALL']
+                          .map(
+                            (label) => ChoiceChip(
+                              label: Text(label),
+                              selected: label == _selectedRange,
+                              onSelected: (_) =>
+                                  setState(() => _selectedRange = label),
+                              showCheckmark: false,
+                              visualDensity: VisualDensity.compact,
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 4,
-                    children: ['1M', '3M', '6M', '1Y', 'ALL']
-                        .map(
-                          (label) => ChoiceChip(
-                            label: Text(label),
-                            selected: label == _selectedRange,
-                            onSelected: (_) => setState(() => _selectedRange = label),
-                            showCheckmark: false,
-                            visualDensity: VisualDensity.compact,
-                          ),
-                        )
-                        .toList(),
-                  ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    height: 150,
-                    width: double.infinity,
-                    child: CustomPaint(painter: _TrajectoryPainter()),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: const [
-                      Icon(
-                        Icons.verified_outlined,
-                        size: 18,
-                        color: GymBroColors.green,
-                      ),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Calculated via Epley Formula',
-                          style: TextStyle(fontSize: 12),
+                          )
+                          .toList(),
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      height: 150,
+                      width: double.infinity,
+                      child: CustomPaint(painter: _TrajectoryPainter()),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: const [
+                        Icon(
+                          Icons.verified_outlined,
+                          size: 18,
+                          color: GymBroColors.green,
                         ),
-                      ),
-                      Text(
-                        'RPE 9.5 AVG',
-                        style: TextStyle(
-                          color: GymBroColors.mutedGreen,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Calculated via Epley Formula',
+                            style: TextStyle(fontSize: 12),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                        Text(
+                          'RPE 9.5 AVG',
+                          style: TextStyle(
+                            color: GymBroColors.mutedGreen,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),
@@ -427,9 +430,8 @@ class _SessionCard extends StatelessWidget {
                     const SizedBox(height: 7),
                     Text(
                       title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                      style: Theme.of(context).textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(height: 12),
                     Row(

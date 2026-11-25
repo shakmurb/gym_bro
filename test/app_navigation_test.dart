@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:gym_bro/main.dart';
+import 'package:gym_bro/screens/history_analytics_screen.dart';
 
 class _FakeAlerts extends RestAlertService {
   @override
@@ -11,6 +12,35 @@ class _FakeAlerts extends RestAlertService {
 }
 
 void main() {
+  testWidgets('strength analytics only appears in the analytics tab', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: HistoryAnalyticsScreen())),
+    );
+
+    expect(find.text('STRENGTH ANALYTICS'), findsNothing);
+    expect(find.text('Push Day - Chest, Shoulders & Triceps'), findsOneWidget);
+
+    await tester.tap(find.text('PROGRESS & ANALYTICS'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('STRENGTH ANALYTICS'), findsOneWidget);
+    expect(find.text('EXERCISE TRAJECTORY'), findsOneWidget);
+    expect(find.text('Push Day - Chest, Shoulders & Triceps'), findsNothing);
+
+    await tester.tap(find.text('WORKOUT LOGS'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('STRENGTH ANALYTICS'), findsNothing);
+    expect(find.text('Push Day - Chest, Shoulders & Triceps'), findsOneWidget);
+  });
+
   testWidgets(
     'main navigation opens the three tabs and starts workout by CTA',
     (tester) async {
