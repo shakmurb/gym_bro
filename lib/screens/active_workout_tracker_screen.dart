@@ -276,6 +276,7 @@ class _ActiveWorkoutTrackerScreenState extends State<ActiveWorkoutTrackerScreen>
       _elapsedBeforeCurrentRun += _clock().difference(startedAt);
     }
     widget.workout.date = _clock();
+    widget.workout.totalTime = _workoutElapsed.inSeconds;
     _timer.pause();
     setState(() {
       _sessionStartedAt = null;

@@ -132,6 +132,7 @@ class _GymBroAppShellState extends State<GymBroAppShell> {
   int _selectedDestination = 0;
   bool _showActiveWorkout = false;
   WorkoutSession? _activeWorkout;
+  final List<WorkoutSession> _finishedSessions = [];
 
   void _startWorkout() {
     setState(() {
@@ -146,6 +147,10 @@ class _GymBroAppShellState extends State<GymBroAppShell> {
 
   void _finishActiveWorkout() {
     setState(() {
+      final finishedWorkout = _activeWorkout;
+      if (finishedWorkout != null) {
+        _finishedSessions.insert(0, finishedWorkout);
+      }
       _activeWorkout = null;
       _timer.reset();
       _selectedDestination = 0;
@@ -167,7 +172,7 @@ class _GymBroAppShellState extends State<GymBroAppShell> {
         index: _showActiveWorkout ? 3 : _selectedDestination,
         children: [
           WorkoutHubScreen(onStartWorkout: _startWorkout),
-          const HistoryAnalyticsScreen(),
+          HistoryAnalyticsScreen(sessions: _finishedSessions),
           const ExerciseLibraryScreen(),
           _activeWorkout == null
               ? const SizedBox.shrink()

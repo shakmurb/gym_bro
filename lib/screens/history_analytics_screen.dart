@@ -1,10 +1,13 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../gym_bro_theme.dart';
+import '../models/workout_session.dart';
 import '../widgets/gym_bro_components.dart';
 
 class HistoryAnalyticsScreen extends StatefulWidget {
-  const HistoryAnalyticsScreen({super.key});
+  const HistoryAnalyticsScreen({super.key, required this.sessions});
+
+  final List<WorkoutSession> sessions;
 
   @override
   State<HistoryAnalyticsScreen> createState() => _HistoryAnalyticsScreenState();
@@ -119,8 +122,8 @@ class _HistoryAnalyticsScreenState extends State<HistoryAnalyticsScreen> {
             if (!_showAnalytics) ...[
               GymBroSectionTitle(
                 title: 'Past Sessions',
-                trailing: const Text(
-                  '3 LOGGED THIS WEEK',
+                trailing: Text(
+                  '${widget.sessions.length} LOGGED',
                   style: TextStyle(
                     color: GymBroColors.mutedGreen,
                     fontSize: 10,
@@ -130,32 +133,22 @@ class _HistoryAnalyticsScreenState extends State<HistoryAnalyticsScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              const _SessionCard(
-                date: 'YESTERDAY · OCT 24 · 58 MINS',
-                title: 'Push Day - Chest, Shoulders & Triceps',
-                volume: '12,450 kg',
-                sets: '18 Total Sets',
-                highlight: '2 NEW PRs · BENCH 102.5 KG · LAT 16 KG',
-                duration: '42m Lifting / 16m Rest',
-              ),
-              const SizedBox(height: 10),
-              const _SessionCard(
-                date: 'TUESDAY, OCT 22 · 64 MINS',
-                title: 'Pull Day - Heavy Deadlifts & Back',
-                volume: '14,800 kg',
-                sets: '16 Sets',
-                highlight: '+5 KG PROGRESSIVE OVERLOAD',
-                duration: '94% TARGET INTENSITY',
-              ),
-              const SizedBox(height: 10),
-              const _SessionCard(
-                date: 'SUNDAY, OCT 20 · 52 MINS',
-                title: 'Leg Day - Squat Focus & Calves',
-                volume: '11,200 kg',
-                sets: '14 Sets Completed',
-                highlight: 'HIGH BAR SQUATS · 140 KG × 5',
-                duration: 'RPE 8.5 AVG',
-              ),
+              if (widget.sessions.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Center(child: Text('No completed workouts yet.')),
+                )
+              else
+                ListView.separated(
+                  key: const ValueKey('workoutSessionsList'),
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: widget.sessions.length,
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 10),
+                  itemBuilder: (context, index) =>
+                      _SessionCard(session: widget.sessions[index]),
+                ),
             ],
             if (_showAnalytics) ...[
               const SizedBox(height: 24),
@@ -382,24 +375,54 @@ class _SummaryMetric extends StatelessWidget {
 }
 
 class _SessionCard extends StatelessWidget {
-  const _SessionCard({
-    required this.date,
-    required this.title,
-    required this.volume,
-    required this.sets,
-    required this.highlight,
-    required this.duration,
-  });
+  const _SessionCard({required this.session});
 
-  final String date;
-  final String title;
-  final String volume;
-  final String sets;
-  final String highlight;
-  final String duration;
+  final WorkoutSession session;
+
+  String _formatDate(DateTime? date) {
+    if (date == null) return 'DATE NOT RECORDED';
+    final localDate = date.toLocal();
+    final year = localDate.year.toString().padLeft(4, '0');
+    final month = localDate.month.toString().padLeft(2, '0');
+    final day = localDate.day.toString().padLeft(2, '0');
+    return '$year-$month-$day';
+  }
+
+  String _formatDuration(int seconds) {
+    final hours = seconds ~/ 3600;
+    final minutes = (seconds % 3600) ~/ 60;
+    final remainingSeconds = seconds % 60;
+    if (hours > 0 && minutes > 0) return '$hours hr $minutes min';
+    if (hours > 0) return '$hours hr';
+    if (minutes == 0) return '$remainingSeconds sec';
+    if (remainingSeconds == 0) return '$minutes min';
+    return '$minutes min $remainingSeconds sec';
+  }
+
+  String _formatVolume(double volume) {
+    final value = volume == volume.roundToDouble()
+        ? volume.toStringAsFixed(0)
+        : volume.toStringAsFixed(1);
+    return '$value kg';
+  }
 
   @override
   Widget build(BuildContext context) {
+    final totalSets = session.sets.fold<int>(
+      0,
+      (count, exercise) => count + exercise.sets.length,
+    );
+    final totalVolume = session.sets.fold<double>(
+      0,
+      (volume, exercise) =>
+          volume +
+          exercise.sets.fold<double>(
+            0,
+            (exerciseVolume, set) =>
+                exerciseVolume + set.weight * set.repetitions,
+          ),
+    );
+
     return GymBroCard(
       padding: EdgeInsets.zero,
       child: IntrinsicHeight(
@@ -419,7 +442,7 @@ class _SessionCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      date,
+                      _formatDate(session.date),
                       style: const TextStyle(
                         color: GymBroColors.mutedGreen,
                         fontSize: 10,
@@ -429,7 +452,7 @@ class _SessionCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 7),
                     Text(
-                      title,
+                      session.name,
                       style: Theme.of(context).textTheme.titleMedium
                           ?.copyWith(fontWeight: FontWeight.w800),
                     ),
@@ -440,7 +463,7 @@ class _SessionCard extends StatelessWidget {
                           child: _SessionStat(
                             icon: Icons.scale_outlined,
                             label: 'TOTAL VOLUME',
-                            value: volume,
+                            value: _formatVolume(totalVolume),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -448,21 +471,14 @@ class _SessionCard extends StatelessWidget {
                           child: _SessionStat(
                             icon: Icons.layers_outlined,
                             label: 'WORK SETS',
-                            value: sets,
+                            value: '$totalSets',
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 10),
                     GymBroPill(
-                      label: highlight,
-                      icon: Icons.bolt,
-                      color: Colors.white,
-                      background: GymBroColors.red,
-                    ),
-                    const SizedBox(height: 8),
-                    GymBroPill(
-                      label: duration,
+                      label: '${_formatDuration(session.totalTime)} TOTAL TIME',
                       icon: Icons.timer_outlined,
                       color: GymBroColors.mutedGreen,
                       background: GymBroColors.elevatedSurface,
