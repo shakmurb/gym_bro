@@ -1,10 +1,22 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../gym_bro_theme.dart';
+import '../models/workout_session.dart';
 import '../widgets/gym_bro_components.dart';
 
 class HistoryAnalyticsScreen extends StatefulWidget {
-  const HistoryAnalyticsScreen({super.key});
+  const HistoryAnalyticsScreen({
+    super.key,
+    required this.sessions,
+    this.isLoading = false,
+    this.errorMessage,
+    this.onDeleteSession,
+  });
+
+  final List<WorkoutSession> sessions;
+  final bool isLoading;
+  final String? errorMessage;
+  final Future<void> Function(WorkoutSession session)? onDeleteSession;
 
   @override
   State<HistoryAnalyticsScreen> createState() => _HistoryAnalyticsScreenState();
@@ -119,8 +131,8 @@ class _HistoryAnalyticsScreenState extends State<HistoryAnalyticsScreen> {
             if (!_showAnalytics) ...[
               GymBroSectionTitle(
                 title: 'Past Sessions',
-                trailing: const Text(
-                  '3 LOGGED THIS WEEK',
+                trailing: Text(
+                  '${widget.sessions.length} LOGGED',
                   style: TextStyle(
                     color: GymBroColors.mutedGreen,
                     fontSize: 10,
@@ -130,147 +142,157 @@ class _HistoryAnalyticsScreenState extends State<HistoryAnalyticsScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              const _SessionCard(
-                date: 'YESTERDAY · OCT 24 · 58 MINS',
-                title: 'Push Day - Chest, Shoulders & Triceps',
-                volume: '12,450 kg',
-                sets: '18 Total Sets',
-                highlight: '2 NEW PRs · BENCH 102.5 KG · LAT 16 KG',
-                duration: '42m Lifting / 16m Rest',
-              ),
-              const SizedBox(height: 10),
-              const _SessionCard(
-                date: 'TUESDAY, OCT 22 · 64 MINS',
-                title: 'Pull Day - Heavy Deadlifts & Back',
-                volume: '14,800 kg',
-                sets: '16 Sets',
-                highlight: '+5 KG PROGRESSIVE OVERLOAD',
-                duration: '94% TARGET INTENSITY',
-              ),
-              const SizedBox(height: 10),
-              const _SessionCard(
-                date: 'SUNDAY, OCT 20 · 52 MINS',
-                title: 'Leg Day - Squat Focus & Calves',
-                volume: '11,200 kg',
-                sets: '14 Sets Completed',
-                highlight: 'HIGH BAR SQUATS · 140 KG × 5',
-                duration: 'RPE 8.5 AVG',
-              ),
+              if (widget.errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: Center(
+                    child: Text(
+                      widget.errorMessage!,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                )
+              else if (widget.isLoading)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (widget.sessions.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Center(child: Text('No completed workouts yet.')),
+                )
+              else
+                ListView.separated(
+                  key: const ValueKey('workoutSessionsList'),
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: widget.sessions.length,
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 10),
+                  itemBuilder: (context, index) => _SessionCard(
+                    session: widget.sessions[index],
+                    onDelete: widget.onDeleteSession,
+                  ),
+                ),
             ],
-            const SizedBox(height: 24),
-            GymBroSectionTitle(
-              title: 'Strength Analytics',
-              trailing: const Text(
-                'ESTIMATED 1RM',
-                style: TextStyle(
-                  color: GymBroColors.green,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1,
+            if (_showAnalytics) ...[
+              const SizedBox(height: 24),
+              GymBroSectionTitle(
+                title: 'Strength Analytics',
+                trailing: const Text(
+                  'ESTIMATED 1RM',
+                  style: TextStyle(
+                    color: GymBroColors.green,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            GymBroCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(height: 12),
+              GymBroCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'EXERCISE TRAJECTORY',
+                                style: TextStyle(
+                                  color: GymBroColors.mutedGreen,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                              SizedBox(height: 5),
+                              Text(
+                                'Barbell Bench Press',
+                                style: TextStyle(fontWeight: FontWeight.w700),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Text(
-                              'EXERCISE TRAJECTORY',
-                              style: TextStyle(
-                                color: GymBroColors.mutedGreen,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 1,
-                              ),
+                              '114.3',
+                              style: Theme.of(context).textTheme.headlineMedium
+                                  ?.copyWith(
+                                    color: GymBroColors.green,
+                                    fontWeight: FontWeight.w900,
+                                  ),
                             ),
-                            SizedBox(height: 5),
-                            Text(
-                              'Barbell Bench Press',
-                              style: TextStyle(fontWeight: FontWeight.w700),
+                            const Text(
+                              '+16.6% OVER 8 WKS',
+                              style: TextStyle(
+                                color: GymBroColors.green,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                           ],
                         ),
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            _showAnalytics ? '114.3' : '105.0',
-                            style: Theme.of(context).textTheme.headlineMedium
-                                ?.copyWith(
-                                  color: GymBroColors.green,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                          ),
-                          const Text(
-                            '+16.6% OVER 8 WKS',
-                            style: TextStyle(
-                              color: GymBroColors.green,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w800,
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 4,
+                      children: ['1M', '3M', '6M', '1Y', 'ALL']
+                          .map(
+                            (label) => ChoiceChip(
+                              label: Text(label),
+                              selected: label == _selectedRange,
+                              onSelected: (_) =>
+                                  setState(() => _selectedRange = label),
+                              showCheckmark: false,
+                              visualDensity: VisualDensity.compact,
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 4,
-                    children: ['1M', '3M', '6M', '1Y', 'ALL']
-                        .map(
-                          (label) => ChoiceChip(
-                            label: Text(label),
-                            selected: label == _selectedRange,
-                            onSelected: (_) => setState(() => _selectedRange = label),
-                            showCheckmark: false,
-                            visualDensity: VisualDensity.compact,
-                          ),
-                        )
-                        .toList(),
-                  ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    height: 150,
-                    width: double.infinity,
-                    child: CustomPaint(painter: _TrajectoryPainter()),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: const [
-                      Icon(
-                        Icons.verified_outlined,
-                        size: 18,
-                        color: GymBroColors.green,
-                      ),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Calculated via Epley Formula',
-                          style: TextStyle(fontSize: 12),
+                          )
+                          .toList(),
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      height: 150,
+                      width: double.infinity,
+                      child: CustomPaint(painter: _TrajectoryPainter()),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: const [
+                        Icon(
+                          Icons.verified_outlined,
+                          size: 18,
+                          color: GymBroColors.green,
                         ),
-                      ),
-                      Text(
-                        'RPE 9.5 AVG',
-                        style: TextStyle(
-                          color: GymBroColors.mutedGreen,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Calculated via Epley Formula',
+                            style: TextStyle(fontSize: 12),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                        Text(
+                          'RPE 9.5 AVG',
+                          style: TextStyle(
+                            color: GymBroColors.mutedGreen,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),
@@ -378,25 +400,101 @@ class _SummaryMetric extends StatelessWidget {
   }
 }
 
-class _SessionCard extends StatelessWidget {
-  const _SessionCard({
-    required this.date,
-    required this.title,
-    required this.volume,
-    required this.sets,
-    required this.highlight,
-    required this.duration,
-  });
+class _SessionCard extends StatefulWidget {
+  const _SessionCard({required this.session, this.onDelete});
 
-  final String date;
-  final String title;
-  final String volume;
-  final String sets;
-  final String highlight;
-  final String duration;
+  final WorkoutSession session;
+  final Future<void> Function(WorkoutSession session)? onDelete;
+
+  @override
+  State<_SessionCard> createState() => _SessionCardState();
+}
+
+class _SessionCardState extends State<_SessionCard> {
+  bool _isDeleting = false;
+
+  Future<void> _confirmDelete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete workout?'),
+        content: Text(
+          'Are you sure you want to delete "${widget.session.name}"? '
+          'This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            key: const ValueKey('confirmDeleteSession'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || widget.onDelete == null) return;
+
+    setState(() => _isDeleting = true);
+    try {
+      await widget.onDelete!(widget.session);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not delete workout: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => _isDeleting = false);
+    }
+  }
+
+  String _formatDate(DateTime? date) {
+    if (date == null) return 'DATE NOT RECORDED';
+    final localDate = date.toLocal();
+    final year = localDate.year.toString().padLeft(4, '0');
+    final month = localDate.month.toString().padLeft(2, '0');
+    final day = localDate.day.toString().padLeft(2, '0');
+    return '$year-$month-$day';
+  }
+
+  String _formatDuration(int seconds) {
+    final hours = seconds ~/ 3600;
+    final minutes = (seconds % 3600) ~/ 60;
+    final remainingSeconds = seconds % 60;
+    if (hours > 0 && minutes > 0) return '$hours hr $minutes min';
+    if (hours > 0) return '$hours hr';
+    if (minutes == 0) return '$remainingSeconds sec';
+    if (remainingSeconds == 0) return '$minutes min';
+    return '$minutes min $remainingSeconds sec';
+  }
+
+  String _formatVolume(double volume) {
+    final value = volume == volume.roundToDouble()
+        ? volume.toStringAsFixed(0)
+        : volume.toStringAsFixed(1);
+    return '$value kg';
+  }
 
   @override
   Widget build(BuildContext context) {
+    final session = widget.session;
+    final totalSets = session.sets.fold<int>(
+      0,
+      (count, exercise) => count + exercise.sets.length,
+    );
+    final totalVolume = session.sets.fold<double>(
+      0,
+      (volume, exercise) =>
+          volume +
+          exercise.sets.fold<double>(
+            0,
+            (exerciseVolume, set) =>
+                exerciseVolume + set.weight * set.repetitions,
+          ),
+    );
+
     return GymBroCard(
       padding: EdgeInsets.zero,
       child: IntrinsicHeight(
@@ -415,21 +513,34 @@ class _SessionCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      date,
-                      style: const TextStyle(
-                        color: GymBroColors.mutedGreen,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.6,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _formatDate(session.date),
+                            style: const TextStyle(
+                              color: GymBroColors.mutedGreen,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.6,
+                            ),
+                          ),
+                        ),
+                        if (widget.onDelete != null)
+                          IconButton(
+                            key: ValueKey('deleteSession-${session.id}'),
+                            tooltip: 'Delete workout',
+                            visualDensity: VisualDensity.compact,
+                            onPressed: _isDeleting ? null : _confirmDelete,
+                            icon: const Icon(Icons.delete_outline),
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 7),
                     Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                      session.name,
+                      style: Theme.of(context).textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(height: 12),
                     Row(
@@ -438,7 +549,7 @@ class _SessionCard extends StatelessWidget {
                           child: _SessionStat(
                             icon: Icons.scale_outlined,
                             label: 'TOTAL VOLUME',
-                            value: volume,
+                            value: _formatVolume(totalVolume),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -446,21 +557,14 @@ class _SessionCard extends StatelessWidget {
                           child: _SessionStat(
                             icon: Icons.layers_outlined,
                             label: 'WORK SETS',
-                            value: sets,
+                            value: '$totalSets',
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 10),
                     GymBroPill(
-                      label: highlight,
-                      icon: Icons.bolt,
-                      color: Colors.white,
-                      background: GymBroColors.red,
-                    ),
-                    const SizedBox(height: 8),
-                    GymBroPill(
-                      label: duration,
+                      label: '${_formatDuration(session.totalTime)} TOTAL TIME',
                       icon: Icons.timer_outlined,
                       color: GymBroColors.mutedGreen,
                       background: GymBroColors.elevatedSurface,

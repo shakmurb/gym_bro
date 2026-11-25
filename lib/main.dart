@@ -8,12 +8,13 @@ import 'package:timezone/timezone.dart' as timezone;
 
 import 'workout_timer.dart';
 import 'gym_bro_theme.dart';
-import 'models/workout.dart';
+import 'models/workout_session.dart';
 import 'sample_workout.dart';
 import 'screens/active_workout_tracker_screen.dart';
 import 'screens/exercise_library_screen.dart';
 import 'screens/history_analytics_screen.dart';
 import 'screens/workout_hub_screen.dart';
+import 'data/repositories/workout_repository.dart';
 
 const _restNotificationId = 1;
 const _restChannelId = 'workout_rest';
@@ -118,10 +119,16 @@ class MyApp extends StatelessWidget {
 }
 
 class GymBroAppShell extends StatefulWidget {
-  const GymBroAppShell({super.key, required this.alerts, this.alertWarning});
+  const GymBroAppShell({
+    super.key,
+    required this.alerts,
+    this.alertWarning,
+    this.repository,
+  });
 
   final RestAlertService alerts;
   final String? alertWarning;
+  final WorkoutSessionStore? repository;
 
   @override
   State<GymBroAppShell> createState() => _GymBroAppShellState();
@@ -129,9 +136,43 @@ class GymBroAppShell extends StatefulWidget {
 
 class _GymBroAppShellState extends State<GymBroAppShell> {
   late final WorkoutTimer _timer = WorkoutTimer();
+  late final WorkoutSessionStore _repository =
+      widget.repository ?? WorkoutRepository();
   int _selectedDestination = 0;
   bool _showActiveWorkout = false;
-  Workout? _activeWorkout;
+  WorkoutSession? _activeWorkout;
+  List<WorkoutSession> _finishedSessions = [];
+  bool _isLoadingHistory = true;
+  String? _historyError;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFinishedSessions();
+  }
+
+  Future<void> _loadFinishedSessions() async {
+    try {
+      final sessions = await _repository.getAllSessions();
+      if (!mounted) return;
+      setState(() {
+        final unsavedSessions = _finishedSessions
+            .where((session) => session.id == null)
+            .toList();
+        _finishedSessions = [...sessions, ...unsavedSessions];
+        _historyError = null;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _historyError = 'Could not load workout history: $error';
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingHistory = false);
+      }
+    }
+  }
 
   void _startWorkout() {
     setState(() {
@@ -144,12 +185,50 @@ class _GymBroAppShellState extends State<GymBroAppShell> {
     });
   }
 
-  void _finishActiveWorkout() {
+  void _finishActiveWorkout(WorkoutSession finishedWorkout) {
     setState(() {
+      _finishedSessions.insert(0, finishedWorkout);
       _activeWorkout = null;
       _timer.reset();
       _selectedDestination = 0;
       _showActiveWorkout = false;
+    });
+    unawaited(_persistFinishedWorkout(finishedWorkout));
+  }
+
+  Future<void> _persistFinishedWorkout(WorkoutSession session) async {
+    try {
+      final id = await _repository.saveSession(session);
+      if (!mounted) return;
+      setState(() {
+        final index = _finishedSessions.indexWhere(
+          (savedSession) => identical(savedSession, session),
+        );
+        if (index != -1) {
+          _finishedSessions[index] = session.copyWith(id: id);
+        }
+        _historyError = null;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _historyError = 'Workout finished, but could not be saved: $error';
+      });
+    }
+  }
+
+  Future<void> _deleteWorkoutSession(WorkoutSession session) async {
+    final id = session.id;
+    if (id != null) {
+      await _repository.deleteSession(id);
+    }
+    if (!mounted) return;
+    setState(() {
+      _finishedSessions.removeWhere(
+        (savedSession) => id == null
+            ? identical(savedSession, session)
+            : savedSession.id == id,
+      );
     });
   }
 
@@ -167,7 +246,12 @@ class _GymBroAppShellState extends State<GymBroAppShell> {
         index: _showActiveWorkout ? 3 : _selectedDestination,
         children: [
           WorkoutHubScreen(onStartWorkout: _startWorkout),
-          const HistoryAnalyticsScreen(),
+          HistoryAnalyticsScreen(
+            sessions: _finishedSessions,
+            isLoading: _isLoadingHistory,
+            errorMessage: _historyError,
+            onDeleteSession: _deleteWorkoutSession,
+          ),
           const ExerciseLibraryScreen(),
           _activeWorkout == null
               ? const SizedBox.shrink()

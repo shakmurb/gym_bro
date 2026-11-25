@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gym_bro/models/exercise.dart';
 import 'package:gym_bro/models/exercise_set.dart';
-import 'package:gym_bro/models/workout.dart';
+import 'package:gym_bro/models/workout_session.dart';
 import 'package:gym_bro/sample_workout.dart';
 import 'package:gym_bro/screens/active_workout_tracker_screen.dart';
 import 'package:gym_bro/workout_timer.dart';
@@ -34,7 +34,7 @@ void main() {
     var now = DateTime(2026, 1, 1);
     final timer = WorkoutTimer(clock: () => now);
     final alerts = _FakeAlerts();
-    final workout = Workout(
+    final workout = WorkoutSession(
       name: 'Test Push Day',
       sets: [
         Exercise(
@@ -43,12 +43,13 @@ void main() {
           mainMuscleGroup: 'CHEST',
           recommendedRestTime: 90,
           sets: [
-            ExerciseSet(weight: 60, repetitions: 10, isCompleted: false),
+            ExerciseSet(weight: 60, repetitions: 99, isCompleted: false),
             ExerciseSet(weight: 60, repetitions: 9, isCompleted: false),
           ],
         ),
       ],
     );
+    WorkoutSession? finishedSession;
 
     await tester.pumpWidget(
       MaterialApp(
@@ -58,7 +59,7 @@ void main() {
           clock: () => now,
           onScheduleRestEnd: alerts.schedule,
           onCancelRestEnd: alerts.cancel,
-          onFinishWorkout: () {},
+          onFinishWorkout: (session) => finishedSession = session,
         ),
       ),
     );
@@ -73,13 +74,40 @@ void main() {
     expect(find.byKey(const ValueKey('startWorkout')), findsOneWidget);
     expect(find.byKey(const ValueKey('pauseWorkout')), findsNothing);
 
-    await tester.ensureVisible(find.byKey(const ValueKey('increaseWeight0-0')));
-    await tester.tap(find.byKey(const ValueKey('increaseWeight0-0')));
-    await tester.pump();
+    await tester.ensureVisible(find.byKey(const ValueKey('weightValue0-0')));
+    expect(
+      tester.getSize(find.byKey(const ValueKey('repsValue0-0'))).width,
+      84,
+    );
+    expect(find.text('99'), findsOneWidget);
+    final repsValueRect = tester.getRect(find.text('99'));
+    final decreaseRepsRect = tester.getRect(
+      find.byKey(const ValueKey('decreaseReps0-0')),
+    );
+    final increaseRepsRect = tester.getRect(
+      find.byKey(const ValueKey('increaseReps0-0')),
+    );
+    expect(repsValueRect.left, greaterThanOrEqualTo(decreaseRepsRect.right));
+    expect(repsValueRect.right, lessThanOrEqualTo(increaseRepsRect.left));
+    expect(
+      tester.getSize(find.byKey(const ValueKey('weightValue0-0'))).width,
+      68,
+    );
+    expect(
+      tester.getRect(find.byKey(const ValueKey('repsValue0-0'))).left -
+          tester.getRect(find.byKey(const ValueKey('weightValue0-0'))).right,
+      8,
+    );
+    await tester.tap(find.byKey(const ValueKey('weightValue0-0')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('weightInput')), findsOneWidget);
+    await tester.enterText(find.byKey(const ValueKey('weightInput')), '999.9');
+    await tester.tap(find.byKey(const ValueKey('saveWeight')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('increaseReps0-0')));
     await tester.pump();
-    expect(workout.sets.first.sets.first.weight, 62.5);
-    expect(workout.sets.first.sets.first.repetitions, 11);
+    expect(workout.sets.first.sets.first.weight, 999.9);
+    expect(workout.sets.first.sets.first.repetitions, 100);
 
     await tester.tap(find.byKey(const ValueKey('startWorkout')));
     await tester.pump();
@@ -126,11 +154,24 @@ void main() {
     expect(timer.hasStartedCurrentSet, isTrue);
     expect(find.text('EXERCISE 1 · SET 2 OF 2'), findsOneWidget);
 
+    expect(workout.date, isNull);
+    now = now.add(const Duration(seconds: 12));
+    await tester.tap(find.byKey(const ValueKey('finishWorkout')));
+    await tester.pump();
+    expect(workout.date, now);
+    expect(finishedSession?.sets, hasLength(1));
+    expect(finishedSession?.sets.single.sets, hasLength(1));
+    expect(finishedSession?.sets.single.sets.single.isCompleted, isTrue);
+    expect(finishedSession?.sets.single.sets.single.repetitions, 100);
+    expect(finishedSession?.date, now);
+    expect(finishedSession?.totalTime, 24);
+
     await tester.tap(find.byKey(const ValueKey('resetWorkout')));
     await tester.pump();
     expect(timer.phase, WorkoutPhase.set);
     expect(timer.setNumber, 1);
     expect(timer.hasStartedCurrentSet, isFalse);
+    expect(workout.date, isNull);
     expect(find.byKey(const ValueKey('startWorkout')), findsOneWidget);
   });
 
@@ -140,7 +181,7 @@ void main() {
     var now = DateTime(2026, 1, 1);
     final timer = WorkoutTimer(clock: () => now);
     final alerts = _FakeAlerts();
-    final workout = Workout(
+    final workout = WorkoutSession(
       name: 'Test Push Day',
       sets: [
         Exercise(
@@ -164,7 +205,7 @@ void main() {
           clock: () => now,
           onScheduleRestEnd: alerts.schedule,
           onCancelRestEnd: alerts.cancel,
-          onFinishWorkout: () {},
+          onFinishWorkout: (_) {},
         ),
       ),
     );

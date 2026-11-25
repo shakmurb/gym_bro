@@ -2,9 +2,9 @@ import 'dart:math';
 
 import 'models/exercise.dart';
 import 'models/exercise_set.dart';
-import 'models/workout.dart';
+import 'models/workout_session.dart';
 
-Workout generatePlaceholderWorkout({Random? random}) {
+WorkoutSession generatePlaceholderWorkout({Random? random}) {
   final exercises = <Exercise>[
     Exercise(
       name: 'Barbell Incline Bench Press',
@@ -44,7 +44,7 @@ Workout generatePlaceholderWorkout({Random? random}) {
   ];
 
   exercises.shuffle(random ?? Random());
-  return Workout(name: 'Push Day', sets: exercises);
+  return WorkoutSession(name: 'Push Day', sets: exercises);
 }
 
 List<ExerciseSet> _sets(int weight, int reps, int count) => List.generate(
