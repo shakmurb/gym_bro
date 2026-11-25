@@ -49,6 +49,7 @@ void main() {
         ),
       ],
     );
+    WorkoutSession? finishedSession;
 
     await tester.pumpWidget(
       MaterialApp(
@@ -58,7 +59,7 @@ void main() {
           clock: () => now,
           onScheduleRestEnd: alerts.schedule,
           onCancelRestEnd: alerts.cancel,
-          onFinishWorkout: () {},
+          onFinishWorkout: (session) => finishedSession = session,
         ),
       ),
     );
@@ -158,6 +159,11 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('finishWorkout')));
     await tester.pump();
     expect(workout.date, now);
+    expect(finishedSession?.sets, hasLength(1));
+    expect(finishedSession?.sets.single.sets, hasLength(1));
+    expect(finishedSession?.sets.single.sets.single.isCompleted, isTrue);
+    expect(finishedSession?.sets.single.sets.single.repetitions, 100);
+    expect(finishedSession?.date, now);
 
     await tester.tap(find.byKey(const ValueKey('resetWorkout')));
     await tester.pump();
@@ -198,7 +204,7 @@ void main() {
           clock: () => now,
           onScheduleRestEnd: alerts.schedule,
           onCancelRestEnd: alerts.cancel,
-          onFinishWorkout: () {},
+          onFinishWorkout: (_) {},
         ),
       ),
     );

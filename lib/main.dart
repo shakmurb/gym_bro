@@ -145,12 +145,9 @@ class _GymBroAppShellState extends State<GymBroAppShell> {
     });
   }
 
-  void _finishActiveWorkout() {
+  void _finishActiveWorkout(WorkoutSession finishedWorkout) {
     setState(() {
-      final finishedWorkout = _activeWorkout;
-      if (finishedWorkout != null) {
-        _finishedSessions.insert(0, finishedWorkout);
-      }
+      _finishedSessions.insert(0, finishedWorkout);
       _activeWorkout = null;
       _timer.reset();
       _selectedDestination = 0;

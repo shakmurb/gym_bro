@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 
 import '../models/exercise.dart';
+import '../models/exercise_set.dart';
 import '../models/workout_session.dart';
 import '../workout_timer.dart';
 import '../widgets/active_workout_exercise_card.dart';
@@ -23,7 +24,7 @@ class ActiveWorkoutTrackerScreen extends StatefulWidget {
   final WorkoutTimer timer;
   final Future<void> Function(DateTime deadline) onScheduleRestEnd;
   final Future<void> Function() onCancelRestEnd;
-  final VoidCallback onFinishWorkout;
+  final ValueChanged<WorkoutSession> onFinishWorkout;
   final String? alertWarning;
   final DateTime Function()? clock;
 
@@ -222,6 +223,43 @@ class _ActiveWorkoutTrackerScreenState extends State<ActiveWorkoutTrackerScreen>
       setIndex == _setIndex &&
       !_completedSets[exerciseIndex][setIndex];
 
+  WorkoutSession _completedWorkoutSnapshot() {
+    final completedExercises = <Exercise>[];
+    for (
+      var exerciseIndex = 0;
+      exerciseIndex < widget.workout.sets.length;
+      exerciseIndex++
+    ) {
+      final exercise = widget.workout.sets[exerciseIndex];
+      final completedSets = <ExerciseSet>[
+        for (var setIndex = 0; setIndex < exercise.sets.length; setIndex++)
+          if (_completedSets[exerciseIndex][setIndex])
+            ExerciseSet(
+              weight: exercise.sets[setIndex].weight,
+              repetitions: exercise.sets[setIndex].repetitions,
+              isCompleted: true,
+            ),
+      ];
+      if (completedSets.isNotEmpty) {
+        completedExercises.add(
+          Exercise(
+            name: exercise.name,
+            description: exercise.description,
+            mainMuscleGroup: exercise.mainMuscleGroup,
+            sets: completedSets,
+            recommendedRestTime: exercise.recommendedRestTime,
+          ),
+        );
+      }
+    }
+
+    return WorkoutSession(
+      name: widget.workout.name,
+      sets: completedExercises,
+      date: widget.workout.date,
+    )..totalTime = widget.workout.totalTime;
+  }
+
   void _adjustSet(
     int exerciseIndex,
     int setIndex,
@@ -285,7 +323,7 @@ class _ActiveWorkoutTrackerScreenState extends State<ActiveWorkoutTrackerScreen>
     if (wasResting) {
       await _performAlertAction(widget.onCancelRestEnd);
     }
-    if (mounted) widget.onFinishWorkout();
+    if (mounted) widget.onFinishWorkout(_completedWorkoutSnapshot());
   }
 
   Future<void> _resetWorkout() async {
