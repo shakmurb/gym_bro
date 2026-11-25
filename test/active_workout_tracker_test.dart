@@ -153,11 +153,18 @@ void main() {
     expect(timer.hasStartedCurrentSet, isTrue);
     expect(find.text('EXERCISE 1 · SET 2 OF 2'), findsOneWidget);
 
+    expect(workout.date, isNull);
+    now = now.add(const Duration(seconds: 12));
+    await tester.tap(find.byKey(const ValueKey('finishWorkout')));
+    await tester.pump();
+    expect(workout.date, now);
+
     await tester.tap(find.byKey(const ValueKey('resetWorkout')));
     await tester.pump();
     expect(timer.phase, WorkoutPhase.set);
     expect(timer.setNumber, 1);
     expect(timer.hasStartedCurrentSet, isFalse);
+    expect(workout.date, isNull);
     expect(find.byKey(const ValueKey('startWorkout')), findsOneWidget);
   });
 

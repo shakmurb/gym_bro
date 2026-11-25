@@ -275,6 +275,7 @@ class _ActiveWorkoutTrackerScreenState extends State<ActiveWorkoutTrackerScreen>
     if (startedAt != null) {
       _elapsedBeforeCurrentRun += _clock().difference(startedAt);
     }
+    widget.workout.date = _clock();
     _timer.pause();
     setState(() {
       _sessionStartedAt = null;
@@ -288,6 +289,7 @@ class _ActiveWorkoutTrackerScreenState extends State<ActiveWorkoutTrackerScreen>
 
   Future<void> _resetWorkout() async {
     _timer.reset();
+    widget.workout.date = null;
     for (final sets in _completedSets) {
       for (var index = 0; index < sets.length; index++) {
         sets[index] = false;
