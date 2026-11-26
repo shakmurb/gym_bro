@@ -120,12 +120,31 @@ void main() {
       WorkoutSession(
         name: 'January session',
         date: DateTime(year, 1, 15),
-        sets: [],
+        sets: [
+          Exercise(
+            name: 'Bench Press',
+            description: '',
+            mainMuscleGroup: 'CHEST',
+            recommendedRestTime: 90,
+            sets: [
+              ExerciseSet(weight: 42.5, repetitions: 8, isCompleted: true),
+              ExerciseSet(weight: 999, repetitions: 99, isCompleted: false),
+            ],
+          ),
+        ],
       ),
       WorkoutSession(
         name: 'February session',
         date: DateTime(year, 2, 15),
-        sets: [],
+        sets: [
+          Exercise(
+            name: 'Squat',
+            description: '',
+            mainMuscleGroup: 'LEGS',
+            recommendedRestTime: 90,
+            sets: [ExerciseSet(weight: 20, repetitions: 10, isCompleted: true)],
+          ),
+        ],
       ),
     ];
 
@@ -137,6 +156,14 @@ void main() {
 
     expect(find.text('January session'), findsOneWidget);
     expect(find.text('February session'), findsOneWidget);
+    expect(find.text('540'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('performanceWorkoutCount')),
+        matching: find.text('2'),
+      ),
+      findsOneWidget,
+    );
 
     await tester.tap(find.byKey(const ValueKey('statsPeriodSelector')));
     await tester.pumpAndSettle();
@@ -153,6 +180,14 @@ void main() {
     expect(find.text('January session'), findsOneWidget);
     expect(find.text('February session'), findsNothing);
     expect(find.text('1 LOGGED'), findsOneWidget);
+    expect(find.text('340'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('performanceWorkoutCount')),
+        matching: find.text('1'),
+      ),
+      findsOneWidget,
+    );
 
     await tester.tap(find.byKey(const ValueKey('statsPeriodSelector')));
     await tester.pumpAndSettle();
@@ -164,6 +199,14 @@ void main() {
     expect(find.text('WHOLE TIME PERFORMANCE'), findsOneWidget);
     expect(find.text('January session'), findsOneWidget);
     expect(find.text('February session'), findsOneWidget);
+    expect(find.text('540'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('performanceWorkoutCount')),
+        matching: find.text('2'),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets(

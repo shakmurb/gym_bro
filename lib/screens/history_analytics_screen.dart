@@ -68,6 +68,35 @@ class _HistoryAnalyticsScreenState extends State<HistoryAnalyticsScreen> {
     }).toList();
   }
 
+  double get _totalVolume => _filteredSessions.fold<double>(
+    0,
+    (sessionVolume, session) =>
+        sessionVolume +
+        session.sets.fold<double>(
+          0,
+          (exerciseVolume, exercise) =>
+              exerciseVolume +
+              exercise.sets.fold<double>(
+                0,
+                (setVolume, set) =>
+                    setVolume +
+                    (set.isCompleted ? set.weight * set.repetitions : 0),
+              ),
+        ),
+  );
+
+  String _formatVolume(double volume) {
+    final value = volume == volume.roundToDouble()
+        ? volume.toStringAsFixed(0)
+        : volume.toStringAsFixed(1);
+    final parts = value.split('.');
+    final whole = parts.first.replaceAllMapped(
+      RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+      (match) => '${match[1]},',
+    );
+    return parts.length == 1 ? whole : '$whole.${parts.last}';
+  }
+
   Future<void> _selectStatsPeriod() async {
     final initialDate = DateTime.now();
     var month = _selectedPeriod.month ?? initialDate.month;
@@ -265,20 +294,21 @@ class _HistoryAnalyticsScreenState extends State<HistoryAnalyticsScreen> {
                   ),
                   const SizedBox(height: 14),
                   Row(
-                    children: const [
+                    children: [
                       Expanded(
                         child: _SummaryMetric(
                           label: 'TOTAL VOLUME',
-                          value: '142,500',
+                          value: _formatVolume(_totalVolume),
                           unit: 'KG LIFTED',
                         ),
                       ),
                       SizedBox(width: 8),
                       Expanded(
                         child: _SummaryMetric(
+                          key: const ValueKey('performanceWorkoutCount'),
                           label: 'WORKOUTS',
-                          value: '18 / 20',
-                          unit: 'THIS MONTH',
+                          value: '${_filteredSessions.length}',
+                          unit: 'IN PERIOD',
                         ),
                       ),
                       SizedBox(width: 8),
@@ -505,6 +535,7 @@ class _TabButton extends StatelessWidget {
 
 class _SummaryMetric extends StatelessWidget {
   const _SummaryMetric({
+    super.key,
     required this.label,
     required this.value,
     required this.unit,
