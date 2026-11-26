@@ -6,6 +6,8 @@ class Exercise {
   final String mainMuscleGroup;
   final List<ExerciseSet> sets;
   final int recommendedRestTime; // in seconds
+  final DateTime? date;
+  final ExerciseSet? lastPR;
 
   Exercise({
     required this.name,
@@ -13,6 +15,8 @@ class Exercise {
     required this.mainMuscleGroup,
     required this.sets,
     required this.recommendedRestTime,
+    this.date,
+    this.lastPR,
   });
 
   Map<String, Object?> toMap() => {
@@ -20,11 +24,14 @@ class Exercise {
     'description': description,
     'main_muscle_group': mainMuscleGroup,
     'recommended_rest_time': recommendedRestTime,
+    'date': date?.toIso8601String(),
+    'last_pr': lastPR?.toMap(),
     'sets': sets.map((set) => set.toMap()).toList(),
   };
 
   factory Exercise.fromMap(Map<String, Object?> map) {
     final rawSets = map['sets'] as List<Object?>? ?? const [];
+    final rawLastPR = map['last_pr'] ?? map['lastPR'];
     return Exercise(
       name: map['name'] as String,
       description: map['description'] as String? ?? '',
@@ -37,6 +44,14 @@ class Exercise {
                   map['recommendedRestTime'] as num? ??
                   0)
               .toInt(),
+      date: switch (map['date']) {
+        final String value => DateTime.parse(value),
+        final DateTime value => value,
+        _ => null,
+      },
+      lastPR: rawLastPR is Map
+          ? ExerciseSet.fromMap(Map<String, Object?>.from(rawLastPR))
+          : null,
       sets: rawSets
           .map(
             (set) =>

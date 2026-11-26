@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:path/path.dart' as path;
 import 'package:sqflite/sqflite.dart';
 
@@ -38,7 +40,7 @@ class WorkoutRepository implements WorkoutSessionStore {
     return factory.openDatabase(
       databasePath,
       options: OpenDatabaseOptions(
-        version: 1,
+        version: 2,
         onConfigure: (database) async {
           await database.execute('PRAGMA foreign_keys = ON');
         },
@@ -60,6 +62,8 @@ class WorkoutRepository implements WorkoutSessionStore {
               description TEXT,
               main_muscle_group TEXT,
               recommended_rest_time INTEGER,
+              completed_at TEXT,
+              last_pr TEXT,
               FOREIGN KEY (session_id)
                 REFERENCES workout_sessions (id)
                 ON DELETE CASCADE
@@ -77,6 +81,16 @@ class WorkoutRepository implements WorkoutSessionStore {
                 ON DELETE CASCADE
             )
           ''');
+        },
+        onUpgrade: (database, oldVersion, newVersion) async {
+          if (oldVersion < 2) {
+            await database.execute(
+              'ALTER TABLE exercises ADD COLUMN completed_at TEXT',
+            );
+            await database.execute(
+              'ALTER TABLE exercises ADD COLUMN last_pr TEXT',
+            );
+          }
         },
       ),
     );
@@ -101,6 +115,10 @@ class WorkoutRepository implements WorkoutSessionStore {
           'description': exercise.description,
           'main_muscle_group': exercise.mainMuscleGroup,
           'recommended_rest_time': exercise.recommendedRestTime,
+          'completed_at': exercise.date?.toIso8601String(),
+          'last_pr': exercise.lastPR == null
+              ? null
+              : jsonEncode(exercise.lastPR!.toMap()),
         });
         for (final exerciseSet in exercise.sets) {
           await transaction.insert('exercise_sets', {
@@ -141,7 +159,15 @@ class WorkoutRepository implements WorkoutSessionStore {
           whereArgs: [exerciseId],
           orderBy: 'id ASC',
         );
-        exercises.add({...exerciseRow, 'sets': setRows});
+        final serializedLastPR = exerciseRow['last_pr'];
+        exercises.add({
+          ...exerciseRow,
+          'date': exerciseRow['completed_at'],
+          'last_pr': serializedLastPR == null
+              ? null
+              : jsonDecode(serializedLastPR as String),
+          'sets': setRows,
+        });
       }
 
       sessions.add(WorkoutSession.fromMap({...sessionRow, 'sets': exercises}));

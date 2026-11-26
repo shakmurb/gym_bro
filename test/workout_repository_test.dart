@@ -30,6 +30,8 @@ void main() {
     final newerSession = _session(
       name: 'Newer workout',
       date: DateTime(2026, 1, 2),
+      exerciseDate: DateTime(2026, 1, 2, 10),
+      lastPR: ExerciseSet(weight: 50, repetitions: 5, isCompleted: true),
     )..totalTime = 3600;
 
     final olderId = await repository.saveSession(olderSession);
@@ -44,6 +46,10 @@ void main() {
     expect(sessions.first.totalTime, 3600);
     expect(sessions.first.sets.single.name, 'Bench Press');
     expect(sessions.first.sets.single.mainMuscleGroup, 'CHEST');
+    expect(sessions.first.sets.single.date, DateTime(2026, 1, 2, 10));
+    expect(sessions.first.sets.single.lastPR?.weight, 50);
+    expect(sessions.first.sets.single.lastPR?.repetitions, 5);
+    expect(sessions.first.sets.single.lastPR?.isCompleted, isTrue);
     expect(
       sessions.first.sets.single.sets
           .map((set) => (set.weight, set.repetitions, set.isCompleted))
@@ -109,20 +115,26 @@ void main() {
   });
 }
 
-WorkoutSession _session({required String name, DateTime? date}) =>
-    WorkoutSession(
-      name: name,
-      date: date,
+WorkoutSession _session({
+  required String name,
+  DateTime? date,
+  DateTime? exerciseDate,
+  ExerciseSet? lastPR,
+}) => WorkoutSession(
+  name: name,
+  date: date,
+  sets: [
+    Exercise(
+      name: 'Bench Press',
+      description: 'Controlled reps',
+      mainMuscleGroup: 'CHEST',
+      recommendedRestTime: 90,
+      date: exerciseDate,
+      lastPR: lastPR,
       sets: [
-        Exercise(
-          name: 'Bench Press',
-          description: 'Controlled reps',
-          mainMuscleGroup: 'CHEST',
-          recommendedRestTime: 90,
-          sets: [
-            ExerciseSet(weight: 42.5, repetitions: 8, isCompleted: true),
-            ExerciseSet(weight: 40, repetitions: 10, isCompleted: false),
-          ],
-        ),
+        ExerciseSet(weight: 42.5, repetitions: 8, isCompleted: true),
+        ExerciseSet(weight: 40, repetitions: 10, isCompleted: false),
       ],
-    );
+    ),
+  ],
+);

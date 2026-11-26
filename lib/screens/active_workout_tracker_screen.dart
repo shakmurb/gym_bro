@@ -248,6 +248,8 @@ class _ActiveWorkoutTrackerScreenState extends State<ActiveWorkoutTrackerScreen>
             mainMuscleGroup: exercise.mainMuscleGroup,
             sets: completedSets,
             recommendedRestTime: exercise.recommendedRestTime,
+            date: exercise.date,
+            lastPR: exercise.lastPR,
           ),
         );
       }
