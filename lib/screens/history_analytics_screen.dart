@@ -4,6 +4,36 @@ import '../gym_bro_theme.dart';
 import '../models/workout_session.dart';
 import '../widgets/gym_bro_components.dart';
 
+class _StatsPeriod {
+  const _StatsPeriod.allTime() : year = null, month = null;
+
+  const _StatsPeriod.monthYear(this.year, this.month);
+
+  static const _months = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
+
+  final int? year;
+  final int? month;
+
+  bool get isAllTime => year == null || month == null;
+
+  String get label => isAllTime
+      ? 'WHOLE TIME PERFORMANCE'
+      : '${_months[month! - 1].toUpperCase()} $year PERFORMANCE';
+}
+
 class HistoryAnalyticsScreen extends StatefulWidget {
   const HistoryAnalyticsScreen({
     super.key,
@@ -25,6 +55,135 @@ class HistoryAnalyticsScreen extends StatefulWidget {
 class _HistoryAnalyticsScreenState extends State<HistoryAnalyticsScreen> {
   bool _showAnalytics = false;
   String _selectedRange = '3M';
+  _StatsPeriod _selectedPeriod = const _StatsPeriod.allTime();
+
+  List<WorkoutSession> get _filteredSessions {
+    if (_selectedPeriod.isAllTime) return widget.sessions;
+
+    return widget.sessions.where((session) {
+      final date = session.date?.toLocal();
+      return date != null &&
+          date.year == _selectedPeriod.year &&
+          date.month == _selectedPeriod.month;
+    }).toList();
+  }
+
+  Future<void> _selectStatsPeriod() async {
+    final initialDate = DateTime.now();
+    var month = _selectedPeriod.month ?? initialDate.month;
+    var year = _selectedPeriod.year ?? initialDate.year;
+    var allTime = _selectedPeriod.isAllTime;
+
+    final selectedPeriod = await showDialog<_StatsPeriod>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Select stats period'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              RadioGroup<bool>(
+                groupValue: allTime,
+                onChanged: (value) {
+                  if (value == null) return;
+                  setDialogState(() => allTime = value);
+                },
+                child: Column(
+                  children: [
+                    RadioListTile<bool>(
+                      key: const ValueKey('statsPeriodAllTime'),
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Whole time'),
+                      value: true,
+                    ),
+                    RadioListTile<bool>(
+                      key: const ValueKey('statsPeriodMonth'),
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Specific month'),
+                      value: false,
+                    ),
+                  ],
+                ),
+              ),
+              if (!allTime)
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<int>(
+                        key: const ValueKey('statsMonthDropdown'),
+                        isExpanded: true,
+                        initialValue: month,
+                        decoration: const InputDecoration(labelText: 'Month'),
+                        items: [
+                          for (
+                            var index = 0;
+                            index < _StatsPeriod._months.length;
+                            index++
+                          )
+                            DropdownMenuItem(
+                              value: index + 1,
+                              child: Text(_StatsPeriod._months[index]),
+                            ),
+                        ],
+                        onChanged: (value) {
+                          if (value != null) {
+                            setDialogState(() => month = value);
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: DropdownButtonFormField<int>(
+                        key: const ValueKey('statsYearDropdown'),
+                        isExpanded: true,
+                        initialValue: year,
+                        decoration: const InputDecoration(labelText: 'Year'),
+                        items: [
+                          for (
+                            var value = initialDate.year;
+                            value >= 1970;
+                            value--
+                          )
+                            DropdownMenuItem(
+                              value: value,
+                              child: Text('$value'),
+                            ),
+                        ],
+                        onChanged: (value) {
+                          if (value != null) {
+                            setDialogState(() => year = value);
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              key: const ValueKey('applyStatsPeriod'),
+              onPressed: () => Navigator.of(context).pop(
+                allTime
+                    ? const _StatsPeriod.allTime()
+                    : _StatsPeriod.monthYear(year, month),
+              ),
+              child: const Text('Apply'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (!mounted || selectedPeriod == null) return;
+    setState(() => _selectedPeriod = selectedPeriod);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,14 +237,27 @@ class _HistoryAnalyticsScreenState extends State<HistoryAnalyticsScreen> {
                         size: 18,
                       ),
                       const SizedBox(width: 8),
-                      const Expanded(
-                        child: Text(
-                          'OCTOBER MACRO PERFORMANCE',
-                          style: TextStyle(
-                            color: GymBroColors.mutedGreen,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.1,
+                      Expanded(
+                        child: TextButton.icon(
+                          key: const ValueKey('statsPeriodSelector'),
+                          onPressed: _selectStatsPeriod,
+                          style: TextButton.styleFrom(
+                            foregroundColor: GymBroColors.mutedGreen,
+                            padding: EdgeInsets.zero,
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            alignment: Alignment.centerLeft,
+                          ),
+                          icon: const Icon(Icons.calendar_month, size: 15),
+                          label: Text(
+                            _selectedPeriod.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.1,
+                            ),
                           ),
                         ),
                       ),
@@ -132,7 +304,7 @@ class _HistoryAnalyticsScreenState extends State<HistoryAnalyticsScreen> {
               GymBroSectionTitle(
                 title: 'Past Sessions',
                 trailing: Text(
-                  '${widget.sessions.length} LOGGED',
+                  '${_filteredSessions.length} LOGGED',
                   style: TextStyle(
                     color: GymBroColors.mutedGreen,
                     fontSize: 10,
@@ -157,7 +329,7 @@ class _HistoryAnalyticsScreenState extends State<HistoryAnalyticsScreen> {
                   padding: EdgeInsets.symmetric(vertical: 20),
                   child: Center(child: CircularProgressIndicator()),
                 )
-              else if (widget.sessions.isEmpty)
+              else if (_filteredSessions.isEmpty)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 20),
                   child: Center(child: Text('No completed workouts yet.')),
@@ -167,11 +339,11 @@ class _HistoryAnalyticsScreenState extends State<HistoryAnalyticsScreen> {
                   key: const ValueKey('workoutSessionsList'),
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: widget.sessions.length,
+                  itemCount: _filteredSessions.length,
                   separatorBuilder: (context, index) =>
                       const SizedBox(height: 10),
                   itemBuilder: (context, index) => _SessionCard(
-                    session: widget.sessions[index],
+                    session: _filteredSessions[index],
                     onDelete: widget.onDeleteSession,
                   ),
                 ),

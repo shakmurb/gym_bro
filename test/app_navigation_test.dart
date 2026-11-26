@@ -107,6 +107,65 @@ void main() {
     expect(find.text('No completed workouts yet.'), findsOneWidget);
   });
 
+  testWidgets('stats period filters workout logs by month and year', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final year = DateTime.now().year;
+    final sessions = [
+      WorkoutSession(
+        name: 'January session',
+        date: DateTime(year, 1, 15),
+        sets: [],
+      ),
+      WorkoutSession(
+        name: 'February session',
+        date: DateTime(year, 2, 15),
+        sets: [],
+      ),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: HistoryAnalyticsScreen(sessions: sessions)),
+      ),
+    );
+
+    expect(find.text('January session'), findsOneWidget);
+    expect(find.text('February session'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('statsPeriodSelector')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('statsPeriodMonth')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('statsMonthDropdown')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('January').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('applyStatsPeriod')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('JANUARY $year PERFORMANCE'), findsOneWidget);
+    expect(find.text('January session'), findsOneWidget);
+    expect(find.text('February session'), findsNothing);
+    expect(find.text('1 LOGGED'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('statsPeriodSelector')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('statsPeriodAllTime')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('applyStatsPeriod')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('WHOLE TIME PERFORMANCE'), findsOneWidget);
+    expect(find.text('January session'), findsOneWidget);
+    expect(find.text('February session'), findsOneWidget);
+  });
+
   testWidgets(
     'main navigation opens the three tabs and starts workout by CTA',
     (tester) async {
