@@ -261,10 +261,6 @@ class _HistoryAnalyticsScreenState extends State<HistoryAnalyticsScreen> {
                           ),
                         ),
                       ),
-                      GymBroPill(
-                        label: _showAnalytics ? 'RISING' : 'PEAK PACE',
-                        color: GymBroColors.green,
-                      ),
                     ],
                   ),
                   const SizedBox(height: 14),
