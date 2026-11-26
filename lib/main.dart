@@ -258,6 +258,7 @@ class _GymBroAppShellState extends State<GymBroAppShell> {
               : ActiveWorkoutTrackerScreen(
                   workout: _activeWorkout!,
                   timer: _timer,
+                  previousSessions: _finishedSessions,
                   alertWarning: widget.alertWarning,
                   onScheduleRestEnd: widget.alerts.scheduleRestEnd,
                   onCancelRestEnd: widget.alerts.cancelRestEnd,

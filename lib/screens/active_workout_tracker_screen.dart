@@ -16,6 +16,7 @@ class ActiveWorkoutTrackerScreen extends StatefulWidget {
     required this.onScheduleRestEnd,
     required this.onCancelRestEnd,
     required this.onFinishWorkout,
+    this.previousSessions = const [],
     this.alertWarning,
     this.clock,
   });
@@ -25,6 +26,7 @@ class ActiveWorkoutTrackerScreen extends StatefulWidget {
   final Future<void> Function(DateTime deadline) onScheduleRestEnd;
   final Future<void> Function() onCancelRestEnd;
   final ValueChanged<WorkoutSession> onFinishWorkout;
+  final List<WorkoutSession> previousSessions;
   final String? alertWarning;
   final DateTime Function()? clock;
 
@@ -55,6 +57,35 @@ class _ActiveWorkoutTrackerScreenState extends State<ActiveWorkoutTrackerScreen>
     final startedAt = _sessionStartedAt;
     return _elapsedBeforeCurrentRun +
         (startedAt == null ? Duration.zero : _clock().difference(startedAt));
+  }
+
+  List<ExerciseSet>? _previousSetsFor(Exercise exercise) {
+    Exercise? latestExercise;
+    DateTime? latestDate;
+    final exerciseName = exercise.name.trim().toLowerCase();
+
+    for (final session in widget.previousSessions) {
+      for (final previousExercise in session.sets) {
+        if (previousExercise.name.trim().toLowerCase() != exerciseName) {
+          continue;
+        }
+
+        final completedSets = previousExercise.sets
+            .where((set) => set.isCompleted)
+            .toList();
+        if (completedSets.isEmpty) continue;
+
+        final completedAt = previousExercise.date ?? session.date;
+        if (latestExercise == null ||
+            (completedAt != null &&
+                (latestDate == null || completedAt.isAfter(latestDate)))) {
+          latestExercise = previousExercise;
+          latestDate = completedAt;
+        }
+      }
+    }
+
+    return latestExercise?.sets.where((set) => set.isCompleted).toList();
   }
 
   @override
@@ -436,6 +467,7 @@ class _ActiveWorkoutTrackerScreenState extends State<ActiveWorkoutTrackerScreen>
                                 padding: const EdgeInsets.only(bottom: 12),
                                 child: ActiveWorkoutExerciseCard(
                                   exercise: exercise,
+                                  previousSets: _previousSetsFor(exercise),
                                   exerciseIndex: exerciseIndex,
                                   exerciseCount: workout.sets.length,
                                   completedSets: _completedSets[exerciseIndex],

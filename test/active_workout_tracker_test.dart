@@ -226,6 +226,82 @@ void main() {
     expect(alerts.cancellations, 1);
   });
 
+  testWidgets('shows sets from the latest completed matching exercise', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final workout = WorkoutSession(
+      name: 'Current workout',
+      sets: [
+        Exercise(
+          name: 'Incline Bench Press',
+          description: '',
+          mainMuscleGroup: 'CHEST',
+          recommendedRestTime: 90,
+          sets: [
+            ExerciseSet(weight: 60, repetitions: 10, isCompleted: false),
+            ExerciseSet(weight: 60, repetitions: 8, isCompleted: false),
+          ],
+        ),
+      ],
+    );
+    final previousSessions = [
+      WorkoutSession(
+        name: 'Older workout',
+        date: DateTime(2026, 1, 1),
+        sets: [
+          Exercise(
+            name: 'Incline Bench Press',
+            description: '',
+            mainMuscleGroup: 'CHEST',
+            recommendedRestTime: 90,
+            sets: [
+              ExerciseSet(weight: 40, repetitions: 10, isCompleted: true),
+              ExerciseSet(weight: 45, repetitions: 8, isCompleted: true),
+            ],
+          ),
+        ],
+      ),
+      WorkoutSession(
+        name: 'Latest workout',
+        date: DateTime(2026, 2, 1),
+        sets: [
+          Exercise(
+            name: 'Incline Bench Press',
+            description: '',
+            mainMuscleGroup: 'CHEST',
+            recommendedRestTime: 90,
+            sets: [
+              ExerciseSet(weight: 50, repetitions: 5, isCompleted: true),
+              ExerciseSet(weight: 55.5, repetitions: 4, isCompleted: true),
+            ],
+          ),
+        ],
+      ),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ActiveWorkoutTrackerScreen(
+          workout: workout,
+          timer: WorkoutTimer(),
+          previousSessions: previousSessions,
+          onScheduleRestEnd: (_) async {},
+          onCancelRestEnd: () async {},
+          onFinishWorkout: (_) {},
+        ),
+      ),
+    );
+
+    expect(find.text('50 x 5'), findsOneWidget);
+    expect(find.text('55.5 x 4'), findsOneWidget);
+    expect(find.text('40 x 10'), findsNothing);
+  });
+
   test('placeholder workout contains a randomized hardcoded exercise list', () {
     final workout = generatePlaceholderWorkout(random: Random(4));
 

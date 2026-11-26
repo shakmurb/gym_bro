@@ -7,6 +7,7 @@ class ActiveWorkoutExerciseCard extends StatelessWidget {
   const ActiveWorkoutExerciseCard({
     super.key,
     required this.exercise,
+    this.previousSets,
     required this.exerciseIndex,
     required this.exerciseCount,
     required this.completedSets,
@@ -18,6 +19,7 @@ class ActiveWorkoutExerciseCard extends StatelessWidget {
   });
 
   final Exercise exercise;
+  final List<ExerciseSet>? previousSets;
   final int exerciseIndex;
   final int exerciseCount;
   final List<bool> completedSets;
@@ -126,6 +128,10 @@ class ActiveWorkoutExerciseCard extends StatelessWidget {
               exerciseIndex: exerciseIndex,
               setIndex: setIndex,
               exerciseSet: exercise.sets[setIndex],
+              previousSet:
+                  previousSets != null && setIndex < previousSets!.length
+                  ? previousSets![setIndex]
+                  : null,
               isCompleted: completedSets[setIndex],
               isCurrent: currentSetIndex == setIndex,
               onAdjustSet: onAdjustSet,
@@ -176,6 +182,7 @@ class _SetRow extends StatelessWidget {
     required this.exerciseIndex,
     required this.setIndex,
     required this.exerciseSet,
+    required this.previousSet,
     required this.isCompleted,
     required this.isCurrent,
     required this.onAdjustSet,
@@ -187,6 +194,7 @@ class _SetRow extends StatelessWidget {
   final int exerciseIndex;
   final int setIndex;
   final ExerciseSet exerciseSet;
+  final ExerciseSet? previousSet;
   final bool isCompleted;
   final bool isCurrent;
   final void Function(int, int, double, int) onAdjustSet;
@@ -229,8 +237,12 @@ class _SetRow extends StatelessWidget {
           ),
           Expanded(
             flex: 2,
-            child: const Text(
-              '—',
+            child: Text(
+              previousSet == null
+                  ? '—'
+                  : '${_formatWeight(previousSet!.weight)} x '
+                        '${previousSet!.repetitions}',
+              key: ValueKey('prevValue$exerciseIndex-$setIndex'),
               style: TextStyle(
                 color: ActiveWorkoutColors.onSurfaceVariant,
                 fontFamily: 'monospace',
